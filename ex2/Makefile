@@ -1,5 +1,5 @@
 output = saida
-input = ex1.c isopen.c
+input = walk_dir.c
 
 all: $(output)
 	./$(output)

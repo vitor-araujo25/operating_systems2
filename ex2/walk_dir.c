@@ -31,15 +31,19 @@ int walk_dir (const char *path, void (*func) (const char *))
 
 	memcpy (full_path, path, len);
 
-	p = full_path + len; *p++ = ‘/’; /* deixa “p” no lugar certo! */
+	p = full_path + len; *p++ = '/'; /* deixa “p” no lugar certo! */
 
 	while ((dp = readdir (dirp)) != NULL)
 	{
 		/* ignora as entradas “.” e “..” */
-		if (strcmp (dp->d_name, “.”) == 0 || strcmp (dp->d_name, “..”) == 0)
+		
+		if (strcmp (dp->d_name, ".") == 0 || strcmp (dp->d_name, "..") == 0)
 			continue;
+		
 		strcpy (p, dp->d_name);
+		
 		/* “full_path” armazena o caminho */
+		
 		(*func) (full_path);
 	}
 
@@ -49,3 +53,10 @@ int walk_dir (const char *path, void (*func) (const char *))
 	return(0);
 
 }	/* end walk_dir */
+
+
+int main(void){
+
+	walk_dir("/home/vitor/Desktop/so2",printf);
+	return 0;
+}
