@@ -1,11 +1,24 @@
-output = saida
-input = walk_dir.c
+all: saida
+	./saida
 
-all: $(output)
-	./$(output)
+saida: icount.o walk_dir.o
+	gcc -g icount.o walk_dir.o -o saida
 
-$(output): $(input)
-	gcc $(input) -o $(output)
+icount.o:
+	gcc -g -c -o icount.o icount.c
+
+walk_dir.o:
+	gcc -g -c -o walk_dir.o walk_dir.c
 
 clean:
-	rm $(output)
+	rm saida saidateste *.o
+
+teste: saidateste
+	./saidateste
+
+saidateste: teste.o walk_dir.o
+	gcc teste.o walk_dir.o -o saidateste
+
+teste.o:
+	gcc -c -o teste.o teste.c
+

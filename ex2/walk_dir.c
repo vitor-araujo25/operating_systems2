@@ -1,9 +1,4 @@
-#include <sys/types.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <dirent.h>
+#include "walk_dir.h"
 
 int walk_dir (const char *path, void (*func) (const char *))
 {
@@ -42,6 +37,7 @@ int walk_dir (const char *path, void (*func) (const char *))
 		
 		strcpy (p, dp->d_name);
 		
+		printf("WALK_DIR: %s\n",p);	
 		/* “full_path” armazena o caminho */
 		
 		(*func) (full_path);
@@ -55,8 +51,3 @@ int walk_dir (const char *path, void (*func) (const char *))
 }	/* end walk_dir */
 
 
-int main(void){
-
-	walk_dir("/home/vitor/Desktop/so2",printf);
-	return 0;
-}
