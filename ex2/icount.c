@@ -20,8 +20,10 @@ void count_files(char *path){
 	
 	//comportamento definido em inode(7)
 	if((fileStat.st_mode & S_IFMT) == type_counted){
-		counter++;
+		printf("OIE!!\n");
+		counter++;	
 	}
+
 
 	/* //tornando recursivo	(não funciona)
 	if((fileStat.st_mode & S_IFMT) == S_IFDIR){
@@ -48,14 +50,22 @@ int main(int argc, char **argv){
 			case 'c':
 				type_counted = S_IFCHR;
 				break;
+			case '?':
 			case 'r':
 			default:
 				type_counted = S_IFREG;
+				break;
 
 		}
 	}
-    
-	walk_dir(argv[optind], count_files);
+	printf("type_counted: %d,  S_IFREG: %d\n",type_counted,S_IFREG);
+    printf("# args = %d\n", optind);
+	for(; optind < argc; optind++){
+		printf("WALKING THROUGH DIR %s\n", argv[optind]);
+		walk_dir(argv[optind], count_files);
+		// walk_dir("/home", count_files);
+	}
+
 	printf("TOTAL: %d arquivos do tipo pedido.\n",counter);
 	return 0;
 }
