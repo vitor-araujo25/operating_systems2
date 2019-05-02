@@ -70,7 +70,11 @@ int main(int argc, char **argv){
 
 		}
 	}
-    //printf("# args = %d\n", optind);
+  	printf("# args = %d\n", argc);
+	if(optind == 1){
+		argv[optind] = ".";
+		argc++;
+	}
 	for(; optind < argc; optind++){
 		printf("WALKING THROUGH DIR %s\n", argv[optind]);
 		walk_dir(argv[optind], count_files);
