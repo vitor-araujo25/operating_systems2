@@ -21,7 +21,6 @@ void count_files(char *path){
 	
 	//comportamento definido em inode(7)
 	if((fileStat.st_mode & S_IFMT) == type_counted){
-		printf("OIE!!\n");
 		counter++;	
 	}
 
@@ -70,9 +69,9 @@ int main(int argc, char **argv){
 	for(; optind < argc; optind++){
 		printf("WALKING THROUGH DIR %s\n", argv[optind]);
 		walk_dir(argv[optind], count_files);
-		// walk_dir("/home", count_files);
+		printf("TOTAL: %d arquivos do tipo pedido.\n",counter);
+		counter = 0;
 	}
 
-	printf("TOTAL: %d arquivos do tipo pedido.\n",counter);
 	return 0;
 }
