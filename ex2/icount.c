@@ -6,26 +6,25 @@
 #include <errno.h>
 
 int counter = 0;
-unsigned char type_counted;
+int type_counted;
 
 void count_files(char *path){
 	
 	struct stat fileStat;
 	
 	//man stat(2)
-	if(lstat(path, fileStat) == -1){
-		printf("deu ruim)");
+	if(lstat(path, &fileStat) == -1){
 		printf("Error: %s", strerror(errno));
 		return -1;
 	}
 	
 	//comportamento definido em inode(7)
-	if((fileStat.st_mode & S_IFMT) == type_counted)
-		counter++;	
-
+	if((fileStat.st_mode & S_IFMT) == type_counted){
+		counter++;
+	}
 
 	/* //tornando recursivo	(não funciona)
-	if((fileStat->st_mode & S_IFMT) == S_IFDIR){
+	if((fileStat.st_mode & S_IFMT) == S_IFDIR){
 		walk_dir(path,count_files);
 	}	
 	*/
