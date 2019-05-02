@@ -26,7 +26,7 @@ void count_files(char *path){
 
 	if(recursive_mode){
 		
-		//tornando recursivo(não funciona)
+		//tornando recursivo
 		
 		if((fileStat.st_mode & S_IFMT) == S_IFDIR){
 			walk_dir(path,count_files);
@@ -69,16 +69,15 @@ int main(int argc, char **argv){
 
 		}
 	}
-	// printf("type_counted: %d,  S_IFREG: %d\n",type_counted,S_IFREG);
     printf("# args = %d\n", optind);
 	for(; optind < argc; optind++){
 		printf("WALKING THROUGH DIR %s\n", argv[optind]);
 		walk_dir(argv[optind], count_files);
-		printf("TOTAL: %d files of type %s on path '%s'.\n",counter, type_string, argv[optind]);
+		printf("%d files of type %s on path '%s'.\n\n",counter, type_string, argv[optind]);
 		total += counter;
 		counter = 0;
 	}
-	printf("counted %d files of type %s.\n", total, type_string);
+	printf("Counted %d files of type %s.\n", total, type_string);
 
 	return 0;
 }

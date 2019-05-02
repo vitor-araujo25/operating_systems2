@@ -37,7 +37,6 @@ int walk_dir (const char *path, void (*func) (const char *))
 		
 		strcpy (p, dp->d_name);
 		
-		printf("WALK_DIR: %s\n",p);	
 		/* “full_path” armazena o caminho */
 		
 		(*func) (full_path);
