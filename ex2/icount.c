@@ -20,8 +20,10 @@ void count_files(char *path){
 	}
 	
 	//comportamento definido em inode(7)
-	if((fileStat.st_mode & S_IFMT) == type_counted)
+	if((fileStat.st_mode & S_IFMT) == type_counted){
+		printf("OIE!!\n");
 		counter++;	
+	}
 
 
 	/* //tornando recursivo	(não funciona)
@@ -56,9 +58,9 @@ int main(int argc, char **argv){
 		}
 	}
     printf("# args = %d\n", optind);
-	for(int i = 2; i <= optind+1; i++){
-		printf("WALKING THROUGH DIR %s\n", argv[i]);
-		walk_dir(argv[i], count_files);
+	for(; optind < argc; optind++){
+		printf("WALKING THROUGH DIR %s\n", argv[optind]);
+		walk_dir(argv[optind], count_files);
 		// walk_dir("/home", count_files);
 	}
 
