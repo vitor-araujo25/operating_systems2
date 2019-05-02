@@ -7,6 +7,7 @@
 
 int counter = 0;
 int type_counted;
+int recursive_mode = 0;
 
 void count_files(char *path){
 	
@@ -24,19 +25,22 @@ void count_files(char *path){
 		counter++;	
 	}
 
-
-	/* //tornando recursivo	(não funciona)
-	if((fileStat.st_mode & S_IFMT) == S_IFDIR){
-		walk_dir(path,count_files);
-	}	
-	*/
+	if(recursive_mode){
+		
+		//tornando recursivo(não funciona)
+		
+		if((fileStat.st_mode & S_IFMT) == S_IFDIR){
+			walk_dir(path,count_files);
+		}	
+	
+	}
 
 }
 
 int main(int argc, char **argv){
 	int opt;
 	int opterr = 0;
-	while((opt = getopt(argc,argv,"rdlbc")) != -1){
+	while((opt = getopt(argc,argv,"Rrdlbc")) != -1){
 		switch(opt){
 			case 'd':
 				type_counted = S_IFDIR;
@@ -49,6 +53,9 @@ int main(int argc, char **argv){
 				break;
 			case 'c':
 				type_counted = S_IFCHR;
+				break;
+			case 'R':
+				recursive_mode = 1;
 				break;
 			case '?':
 			case 'r':
