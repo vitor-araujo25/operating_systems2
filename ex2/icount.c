@@ -5,8 +5,10 @@
 #include <sys/types.h>
 #include <errno.h>
 
+enum Type {S_IFDIR = 'S_IFDIR - diretorio', S_IFLNK = 'S_IFLNK - link simbolico', S_IFBLK = 'S_IFBLK - arquivo de bloco', S_IFCHR = 'S_IFCHR - arquivo de caracter', S_IFREG = 'S_IFREG - arquivo normal'};
+
 int counter = 0;
-int type_counted;
+int type_counted = S_IFREG;
 int recursive_mode = 0;
 
 void count_files(char *path){
