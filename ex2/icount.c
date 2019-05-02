@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include "walk_dir.h"
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <errno.h>
 
 int counter = 0;
@@ -9,22 +10,22 @@ unsigned char type_counted;
 
 void count_files(char *path){
 	
-	struct stat *buf;
+	struct stat fileStat;
 	
 	//man stat(2)
-	if(lstat(path, buf) == -1){
+	if(lstat(path, fileStat) == -1){
 		printf("deu ruim)");
 		printf("Error: %s", strerror(errno));
 		return -1;
 	}
 	
 	//comportamento definido em inode(7)
-	if((buf->st_mode & S_IFMT) == type_counted)
+	if((fileStat.st_mode & S_IFMT) == type_counted)
 		counter++;	
 
 
 	/* //tornando recursivo	(não funciona)
-	if((buf->st_mode & S_IFMT) == S_IFDIR){
+	if((fileStat->st_mode & S_IFMT) == S_IFDIR){
 		walk_dir(path,count_files);
 	}	
 	*/
@@ -33,7 +34,7 @@ void count_files(char *path){
 
 int main(int argc, char **argv){
 	int opt;
-	opterr = 0;
+	int opterr = 0;
 	while((opt = getopt(argc,argv,"rdlbc")) != -1){
 		switch(opt){
 			case 'd':
@@ -55,7 +56,7 @@ int main(int argc, char **argv){
 		}
 	}
     
-	walk_dir(argv[optind],count_files);
+	walk_dir(argv[optind], count_files);
 	printf("TOTAL: %d arquivos do tipo pedido.\n",counter);
 	return 0;
 }
