@@ -21,6 +21,7 @@ void count_files(char *path){
 	
 	//comportamento definido em inode(7)
 	if((fileStat.st_mode & S_IFMT) == type_counted){
+		printf("Requested filetype found at: %s\n",path);
 		counter++;	
 	}
 
@@ -69,7 +70,7 @@ int main(int argc, char **argv){
 
 		}
 	}
-    printf("# args = %d\n", optind);
+    //printf("# args = %d\n", optind);
 	for(; optind < argc; optind++){
 		printf("WALKING THROUGH DIR %s\n", argv[optind]);
 		walk_dir(argv[optind], count_files);
