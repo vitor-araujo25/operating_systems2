@@ -13,7 +13,7 @@ void count_files(char *path){
 	struct stat fileStat;
 	
 	//man stat(2)
-	if(lstat(path, fileStat) == -1){
+	if(lstat(path, &fileStat) == -1){
 		printf("deu ruim)");
 		printf("Error: %s", strerror(errno));
 		return -1;
@@ -55,8 +55,13 @@ int main(int argc, char **argv){
 
 		}
 	}
-    
-	walk_dir(argv[optind], count_files);
+    printf("# args = %d\n", optind);
+	for(int i = 2; i <= optind+1; i++){
+		printf("WALKING THROUGH DIR %s\n", argv[i]);
+		walk_dir(argv[i], count_files);
+		// walk_dir("/home", count_files);
+	}
+
 	printf("TOTAL: %d arquivos do tipo pedido.\n",counter);
 	return 0;
 }
