@@ -12,7 +12,7 @@ int main(void){
 
 	}
 
-	printf("existem %d descritores abertos\n", nopen);
+	printf("Existem %d descritores abertos\n", nopen);
 
 	return (0);
 
