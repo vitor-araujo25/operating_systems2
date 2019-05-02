@@ -8,6 +8,7 @@
 int counter = 0;
 int type_counted = S_IFREG;
 int recursive_mode = 0;
+int opterr = 0;
 
 void count_files(char *path){
 	
@@ -37,12 +38,13 @@ void count_files(char *path){
 
 }
 
+void printHelp();
+
 int main(int argc, char **argv){
 	int opt;
-	int opterr = 0;
 	int total = 0;
 	char *type_string = "S_IFDIR (arquivo normal)";
-	while((opt = getopt(argc,argv,"Rrdlbc")) != -1){
+	while((opt = getopt(argc,argv,"Rrdlbch")) != -1){
 		switch(opt){
 			case 'd':
 				type_counted = S_IFDIR;
@@ -63,6 +65,17 @@ int main(int argc, char **argv){
 			case 'R':
 				recursive_mode = 1;
 				break;
+			case 'h':
+				printHelp();
+				break;
+			case '?':
+				if(isprint(optopt)){
+					fprintf(stderr,"-%c is not a valid option.\n\n", optopt);
+				}else{
+					fprintf(stderr,"Unknown character \\x%x \n\n",optopt);
+				}
+				printHelp();
+				break;
 			case 'r':
 			default:
 				type_counted = S_IFREG;
@@ -70,7 +83,6 @@ int main(int argc, char **argv){
 
 		}
 	}
-  	printf("# args = %d\n", argc);
 	if(optind == 1){
 		argv[optind] = ".";
 		argc++;
@@ -85,4 +97,23 @@ int main(int argc, char **argv){
 	printf("Counted %d files of type %s.\n", total, type_string);
 
 	return 0;
+}
+
+
+void printHelp(){
+	fprintf(stderr, "\
+		\rInstructions:\n\
+		\r\ticount -[Rrdcbl] [<dirpath>...]\n\n\
+		\r\t-h         Prints these instructions and exits.\n\n\
+		\rOPERATION MODES\n\
+		\r\t-R  	   Runs in recursive mode.\n\n\
+		\rSEARCH TYPES\n\
+		\r\t-r         regular files (same as no flag)\n\
+		\r\t-d         directories\n\
+		\r\t-c         character files\n\
+		\r\t-b         block files\n\
+		\r\t-l         symbolic links\n\
+		\r\n");
+
+	exit(-1);
 }
