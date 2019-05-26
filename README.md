@@ -1,3 +1,3 @@
-## Operational Systems 
+## Operating Systems 
 
-Codes for assignments of the undergraduate Operational Systems 2 course in UFRJ in the semester of 2019.1
+Codes for assignments of the undergraduate Operating Systems 2 course in UFRJ in the semester of 2019.1
