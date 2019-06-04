@@ -1,3 +1,7 @@
-#!/bin/sh
+#!/bin/bash
 
-cat /etc/passwd | cut -d':' --fields=1,5 | sort | tr ':' "\t"
+for i in $@
+do
+	echo -n "$i"
+done
+echo

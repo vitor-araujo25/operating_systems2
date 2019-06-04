@@ -1,7 +1,8 @@
 #!/bin/sh
 
 if [ "$#" -eq 0 ]; then
-	exit 0
+	echo "Preciso de 2 argumentos!"
+	exit -1
 fi
 
 echo "$2" | grep -q "$1"
