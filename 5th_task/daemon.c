@@ -32,20 +32,16 @@ void signal_handler(int sig){
 static void daemon_skel(){
     pid_t pid;
 
-    /* Fork off the parent process */
     pid = fork();
 
-    /* An error occurred */
     if (pid < 0)
         exit(EXIT_FAILURE);
 
-    /* Success: Let the parent terminate */
     if (pid > 0){
         printf("PID: %d\n", pid);
         exit(EXIT_SUCCESS);
     }
 
-    /* On success: The child process becomes session leader */
     if (setsid() < 0)
         exit(EXIT_FAILURE);
 
@@ -62,33 +58,15 @@ static void daemon_skel(){
     signal(SIGUSR1, signal_handler);
     signal(SIGCHLD, signal_handler);
 
-    // /* Fork off for the second time*/
-    // pid = fork();
-
-    // /* An error occurred */
-    // if (pid < 0)
-    //     exit(EXIT_FAILURE);
-
-    // /* Success: Let the parent terminate */
-    // if (pid > 0){
-    //     printf("PID: %d\n", pid);
-    //     exit(EXIT_SUCCESS);
-    // }
-
-    /* Set new file permissions */
     umask(0);
 
-    /* Change the working directory to the root directory */
-    /* or another appropriated directory */
     // chdir("/");
 
-    /* Close all open file descriptors */
     int x;
     for (x = sysconf(_SC_OPEN_MAX); x>=0; x--){
         close (x);
     }
 
-    /* Open the log file */
     // openlog ("firstdaemon", LOG_PID, LOG_DAEMON);
 }
 
@@ -96,23 +74,10 @@ int main(int argc, char **argv){
     daemon_skel();
 
     char *logfile = "/tmp/daemon.log";
-    // DIR *proc = opendir("/proc");
-    // struct dirent* ent;
-    // pid_t tgid;
-
-    // if(proc == NULL){
-    //     return 1;
-    // }
-
+    
     fp = fopen(logfile, "w+");
     // syslog (LOG_NOTICE, "First daemon started.");
     while (1){
-        // while(ent = readdir(proc)){
-        //     if(!isdigit(*ent->d_name))
-        //         continue;
-        //     tgid = strtol(ent->d_name, NULL, 10);
-        //     fprintf (fp, "PROC PID: %d.", tgid);
-        // }
         pp = popen("ps -eo pid,ppid,stat,comm |\
 				awk 'match($3, /Z.*/) {print $1 \" \" $2 \" \" $4}'", "r");
         fprintf(fp, "PID\tPPID\tname\n");
