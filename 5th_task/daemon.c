@@ -6,23 +6,18 @@
 #include <sys/stat.h>
 #include <syslog.h>
 #include <fcntl.h>
-#include <string.h>
 #include <dirent.h>
 #include <signal.h>
 
 FILE *fp = NULL;
 FILE *pp = NULL;
 
-void graceful_close(int sig){
-	fprintf(fp,"\nClosing due to signal %s\n", strsignal(sig));
-	fclose(fp);
-	exit(0);
-}
-
 void signal_handler(int sig){
     switch(sig){
         case SIGTERM:
-            graceful_close(sig);
+			fprintf(fp,"\nSIGTERM recebido, encerrando daemon...");
+			fclose(fp);
+			exit(0);
             break;
         default:
             break;
@@ -60,14 +55,10 @@ static void daemon_skel(){
 
     umask(0);
 
-    // chdir("/");
-
     int x;
     for (x = sysconf(_SC_OPEN_MAX); x>=0; x--){
         close (x);
     }
-
-    // openlog ("firstdaemon", LOG_PID, LOG_DAEMON);
 }
 
 int main(int argc, char **argv){
@@ -76,28 +67,26 @@ int main(int argc, char **argv){
     char *logfile = "/tmp/daemon.log";
     
     fp = fopen(logfile, "w+");
-    // syslog (LOG_NOTICE, "First daemon started.");
-    while (1){
+    
+	fprintf(fp, "PID\t\tPPID\t\tNome do Programa\n");
+	while (1){
         pp = popen("ps -eo pid,ppid,stat,comm |\
-				awk 'match($3, /Z.*/) {print $1 \" \" $2 \" \" $4}'", "r");
-        fprintf(fp, "PID\tPPID\tname\n");
+				awk 'match($3, /Z.*/) {printf \
+				\"\%s\\t\\t\%s\\t\\t\%s\\n\",$1,$2,$4}'", "r");
+		fprintf(fp, "==================================================\n");
         if(pp){
             while(1){
                     char *line;
                     char buf[1000];
                     line = fgets(buf, sizeof buf, pp);
                     if (line == NULL) break;
-                    fprintf(fp,"%s\n",line);
-                }
-            fprintf(fp, "==================================================\n");
+                    fprintf(fp,"%s",line);
+			}
             fflush(fp);
             fclose(pp);
         }
         sleep(atoi(argv[1]));
     }
-
-    // syslog (LOG_NOTICE, "First daemon terminated.");
-    // closelog();
 
     return EXIT_SUCCESS;
 }

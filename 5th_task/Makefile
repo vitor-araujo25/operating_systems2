@@ -1,14 +1,17 @@
-all: parse summoner 
+all: daemon summoner 
 	./summoner 3
-	./parse 1
+	./daemon 2 | awk '{print $$2}' > daemon.pid
 
-parse: parse.c
-	gcc parse.c -o parse
+
+daemon: daemon.c
+	gcc daemon.c -o daemon
 
 summoner: summoner.c
 	gcc summoner.c -o summoner
 
 clean:
-	rm parse summoner daemon.log
+	kill -TERM $$(cat daemon.pid)
+	rm daemon summoner daemon.pid
 	./slayer.sh
+	
 
