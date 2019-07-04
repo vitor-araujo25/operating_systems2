@@ -25,6 +25,11 @@ typedef struct Host{
     char iface[21];
 } Host;
 
+typedef struct HostList{
+    Host* hosts;
+    int len;
+} HostList;
+
 static struct option long_options[] = {
     {"blacklist",           required_argument   , NULL, 'b'},
     {"daemon",              no_argument         , NULL, 'd'},
@@ -43,7 +48,7 @@ int showHelp(){
     exit(0);
 }
 
-Host* read_arp(){
+HostList read_arp(){
 
     Host *hosts;
     char host_count[10];
@@ -60,13 +65,15 @@ Host* read_arp(){
     int i = 0;
     while (fgets(buf, sizeof(buf)-1, fp) != NULL){
         
-        int ret = sscanf(buf, "%[^-]-%[^-]-%[^-]-%[^-]-%[^-]", (hosts+i)->ip, (hosts+i)->hw_type, (hosts+i)->flags, (hosts+i)->mac, (hosts+i)->iface);
-        // printf("ret: %d\tIP: %s\tHW: %s\tflag: %s\tMAC: %s\tIF: %s\n", ret, (hosts+i)->ip, (hosts+i)->hw_type, (hosts+i)->flags, (hosts+i)->mac, (hosts+i)->iface);
+        int ret = sscanf(buf, "%[^-\n]-%[^-\n]-%[^-\n]-%[^-\n]-%[^-\n]", (hosts+i)->ip, (hosts+i)->hw_type, (hosts+i)->flags, (hosts+i)->mac, (hosts+i)->iface);
         ++i;
     }
     fclose(fp);
+    HostList list;
+    list.hosts = hosts;
+    list.len = (int)atoi(host_count);
 
-    return hosts;
+    return list;
 }
 
 void signal_handler(int sig){
@@ -127,7 +134,7 @@ int main(int argc, char** argv){
     int quiet = 0;
     while(1){
         option_index = 0;
-        opt = getopt_long(argc, argv, "l:d:q:b:h", long_options, &option_index);
+        opt = getopt_long(argc, argv, "l:dq:b:h", long_options, &option_index);
         if(opt == -1) {
             break;
         }
@@ -151,14 +158,14 @@ int main(int argc, char** argv){
                 break;
         }                              
     }
-    Host *h = read_arp();
+    HostList h = read_arp();
     if(daemonized){
         daemon_skel();
         while(1){
-            logp = fopen(logfile,"w+");
+            logp = fopen(logfile,"w");
             
-            for(int i = 0; i < sizeof(*h)/sizeof(Host)+1; i++){
-                fprintf(logp, "IP: %s, MAC: %s\n", h[i].ip, h[i].mac);
+            for(int i = 0; i < h.len; i++){
+                fprintf(logp, "IP: %s, MAC: %s, Interface: %s\n", h.hosts[i].ip, h.hosts[i].mac,h.hosts[i].iface);
             }
 
             fclose(logp);
@@ -167,9 +174,10 @@ int main(int argc, char** argv){
     }
     else{
         while(1){
-            for(int i = 0; i < sizeof(*h)/sizeof(Host)+1; i++){
-                printf("IP: %s, MAC: %s\n", h[i].ip, h[i].mac);
+            for(int i = 0; i < h.len; i++){
+                printf("IP: %s, MAC: %s, Interface: %s\n", h.hosts[i].ip, h.hosts[i].mac, h.hosts[i].iface);
             }
+            printf("\n");
             sleep(30);
         }
                      
