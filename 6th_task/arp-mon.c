@@ -12,6 +12,8 @@
 #include <string.h>
 
 const char *arp = {"/proc/net/arp"};
+const int max_line_len = 20;
+int blacklist_lines_allocated = 64;
 
 FILE *fp = NULL;
 FILE *logp = NULL;
@@ -21,7 +23,7 @@ typedef struct Host{
     char ip[16];
     char hw_type[10];
     char flags[10];
-    char mac[18];
+    char mac[20];
     char iface[21];
 } Host;
 
@@ -48,8 +50,13 @@ int showHelp(){
     exit(0);
 }
 
-HostList read_arp(){
+void graceful_close(){
+    fclose(fp);
+    fclose(logp);
+    exit(EXIT_SUCCESS);
+}
 
+HostList read_arp(){
     Host *hosts;
     char host_count[10];
     char buf[1000];
@@ -64,7 +71,6 @@ HostList read_arp(){
     fp = popen(query,"r");
     int i = 0;
     while (fgets(buf, sizeof(buf)-1, fp) != NULL){
-        
         int ret = sscanf(buf, "%[^-\n]-%[^-\n]-%[^-\n]-%[^-\n]-%[^-\n]", (hosts+i)->ip, (hosts+i)->hw_type, (hosts+i)->flags, (hosts+i)->mac, (hosts+i)->iface);
         ++i;
     }
@@ -76,12 +82,52 @@ HostList read_arp(){
     return list;
 }
 
+char** read_blacklist(char *blacklist_file){
+    char **blacklist = (char **) malloc(sizeof(char*) * blacklist_lines_allocated);
+    if(blacklist == NULL){
+        fprintf(stderr, "Out of memory.\n");
+        graceful_close();
+    }
+    bl = fopen(blacklist_file, "r");
+    if(bl == NULL){
+        fprintf(stderr, "Error reading blacklist.\n");
+        graceful_close();
+    }
+    int i;
+    for(i = 0; 1; ++i){
+        int j;
+        if(i >= blacklist_lines_allocated){
+            int new_size;
+            new_size = blacklist_lines_allocated * 2;
+            blacklist = (char **) realloc(blacklist, sizeof(char*) * new_size);
+            if(blacklist == NULL){
+                fprintf(stderr, "Out of memory.\n");
+                graceful_close();
+            }
+            blacklist_lines_allocated = new_size;
+        }
+        blacklist[i] = malloc(max_line_len);
+        if(blacklist[i] == NULL){
+            fprintf(stderr, "Out of memory.\n");
+            graceful_close();
+        }
+        if(fgets(blacklist[i], max_line_len - 1, bl) == NULL)
+            break;
+        for(j = strlen(blacklist[i]) - 1; j >= 0 && (blacklist[i][j] == '\n' || blacklist[i][j] == '\r'); --j)
+            blacklist[i][j] = '\0';
+        
+    }
+    int j;
+    for(j = 0; j < i; j++)
+        printf("%s\n", blacklist[j]);
+    fclose(bl);
+    return blacklist;
+}
+
 void signal_handler(int sig){
     switch(sig){
         case SIGTERM:
-            fclose(fp);
-            fclose(logp);
-			exit(0);
+            graceful_close();
             break;
         default:
             break;
@@ -127,7 +173,8 @@ static void daemon_skel(){
 
 int main(int argc, char** argv){
     char* logfile = "/tmp/monitor.log";
-    char* blacklist = "/tmp/blacklist";
+    char* blacklist_file = "/tmp/blacklist";
+    char **blacklist = NULL;
     int option_index;
     int opt;
     int daemonized = 0;
@@ -140,7 +187,7 @@ int main(int argc, char** argv){
         }
         switch(opt){
             case 'b':
-                blacklist = optarg;
+                blacklist_file = optarg;
                 break;                                                                                                                                                              
             case 'd':
                 daemonized = 1;
@@ -158,6 +205,10 @@ int main(int argc, char** argv){
                 break;
         }                              
     }
+    blacklist = read_blacklist(blacklist_file);
+    puts("TESTE");
+    for(int j = 0; j < 3; ++j)
+        printf("%s\n", blacklist[j] );
     HostList h = read_arp();
     if(daemonized){
         daemon_skel();
