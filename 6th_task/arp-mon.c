@@ -16,7 +16,7 @@ const int max_line_len = 20;
 int blacklist_lines_allocated = 64;
 
 FILE *fp = NULL;
-FILE *logp = NULL;
+FILE *output = NULL;
 FILE *bl = NULL;
 
 typedef struct Host{
@@ -51,8 +51,9 @@ int showHelp(){
 }
 
 void graceful_close(){
-    fclose(fp);
-    fclose(logp);
+    if(fp) fclose(fp);
+    if(output) fclose(output);
+    if(bl) fclose(bl);
     exit(EXIT_SUCCESS);
 }
 
@@ -163,11 +164,34 @@ static void daemon_skel(){
     signal(SIGUSR1, signal_handler);
     signal(SIGCHLD, signal_handler);
 
-    umask(0);
+    umask(0664);
 
     int x;
     for (x = sysconf(_SC_OPEN_MAX); x>=0; x--){
         close (x);
+    }
+}
+
+void print_loop(char *logfile){
+    HostList h;
+
+    while(1){
+        h = read_arp();
+
+        if(logfile) {
+            output = fopen(logfile,"a+");
+        }else{
+            output = stdout;
+        }
+        
+        for(int i = 0; i < h.len; i++){
+            fprintf(output, "IP: %s, MAC: %s, Interface: %s\n", h.hosts[i].ip, h.hosts[i].mac,h.hosts[i].iface);
+        }
+
+        fprintf(output,"\n");
+        if(logfile) fclose(output);
+
+        sleep(5);
     }
 }
 
@@ -207,31 +231,15 @@ int main(int argc, char** argv){
     }
     blacklist = read_blacklist(blacklist_file);
     puts("TESTE");
-    for(int j = 0; j < 3; ++j)
-        printf("%s\n", blacklist[j] );
-    HostList h = read_arp();
+    // for(int j = 0; j < 3; ++j)
+    //     printf("%s\n", blacklist[j] );
     if(daemonized){
         daemon_skel();
-        while(1){
-            logp = fopen(logfile,"w");
-            
-            for(int i = 0; i < h.len; i++){
-                fprintf(logp, "IP: %s, MAC: %s, Interface: %s\n", h.hosts[i].ip, h.hosts[i].mac,h.hosts[i].iface);
-            }
-
-            fclose(logp);
-            sleep(30);
-        }
+        fclose(fopen(logfile,"w"));
+        print_loop(logfile);
     }
     else{
-        while(1){
-            for(int i = 0; i < h.len; i++){
-                printf("IP: %s, MAC: %s, Interface: %s\n", h.hosts[i].ip, h.hosts[i].mac, h.hosts[i].iface);
-            }
-            printf("\n");
-            sleep(30);
-        }
-                     
+        print_loop(NULL);                     
     }
   
 }
