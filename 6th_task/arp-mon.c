@@ -98,7 +98,7 @@ char** read_whitelist(char *whitelist_file){
     wl = fopen(whitelist_file, "r");
     if(wl == NULL){
         printf("%d\n",errno);
-        if(errno == ENOENT){
+        if(errno == ENOENT){  //cria whitelist se ela não existir
             fclose(fopen(whitelist_file,"w"));
             goto file_open;
         }else{        
@@ -131,6 +131,7 @@ char** read_whitelist(char *whitelist_file){
             whitelist[i][j] = '\0';
         
     }
+    //tamanho real da lista que será usado para iterar
     whitelist_size = i+1;
     fclose(wl);
     return whitelist;
@@ -175,6 +176,7 @@ static void daemon_skel(){
     signal(SIGUSR1, signal_handler);
     signal(SIGCHLD, signal_handler);
 
+    //Executa o daemon com permissões rw-rw-rw-
     umask(0666);
 
     int x;
@@ -260,6 +262,7 @@ int main(int argc, char** argv){
 
     if(daemonized){
         daemon_skel();
+        //limpa o arquivo de log existente
         fclose(fopen(logfile,"w"));
         print_loop(logfile,whitelist_file);
     }
