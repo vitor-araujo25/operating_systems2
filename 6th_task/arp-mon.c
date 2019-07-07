@@ -10,14 +10,16 @@
 #include <signal.h>
 #include <getopt.h>
 #include <string.h>
+#include <errno.h>
 
-const char *arp = {"/proc/net/arp"};
 const int max_line_len = 20;
-int blacklist_lines_allocated = 64;
+int whitelist_lines_allocated = 64;
+int whitelist_size;
+int arp_interval = 30;
 
 FILE *fp = NULL;
 FILE *output = NULL;
-FILE *bl = NULL;
+FILE *wl = NULL;
 
 typedef struct Host{
     char ip[16];
@@ -33,7 +35,8 @@ typedef struct HostList{
 } HostList;
 
 static struct option long_options[] = {
-    {"blacklist",           required_argument   , NULL, 'b'},
+    {"whitelist",           required_argument   , NULL, 'w'},
+    {"interval",            required_argument   , NULL, 'i'},
     {"daemon",              no_argument         , NULL, 'd'},
     {"logfile",             required_argument   , NULL, 'l'},
     {"quiet",               no_argument         , NULL, 'q'},
@@ -42,18 +45,20 @@ static struct option long_options[] = {
 };
 
 int showHelp(){
-    printf("Usage: ./sso \n");
+    printf("Usage: ./arp-mon \n");
     printf("Params:\n");
-    printf("\t-b, --blacklist: Blacklist of MAC address. Alerts if detected even in quiet mode. Default: /tmp/blacklist\n");
-    printf("\t-l, --logfile: Location to log events. Default: /tmp/monitor.log\n");
-    printf("\t-d, --daemon: Run as a daemon\n");
+    printf("\t-w, --whitelist: List of MAC addresses to be ignored by the monitor.  Default: /tmp/whitelist\n");
+    printf("\t-i, --interval: Scanning interval in seconds. Default: 30\n");
+    printf("\t-l, --logfile: Destination to be used as log file. Default: /tmp/monitor.log\n");
+    printf("\t-d, --daemon: Run as a daemon. Should always be used with -l, or all output will be lost.\n");
+    printf("\t-h, --help: Print this message.\n");
     exit(0);
 }
 
 void graceful_close(){
     if(fp) fclose(fp);
     if(output) fclose(output);
-    if(bl) fclose(bl);
+    if(wl) fclose(wl);
     exit(EXIT_SUCCESS);
 }
 
@@ -83,46 +88,52 @@ HostList read_arp(){
     return list;
 }
 
-char** read_blacklist(char *blacklist_file){
-    char **blacklist = (char **) malloc(sizeof(char*) * blacklist_lines_allocated);
-    if(blacklist == NULL){
+char** read_whitelist(char *whitelist_file){
+    char **whitelist = (char **) calloc(whitelist_lines_allocated,sizeof(char*));
+    if(whitelist == NULL){
         fprintf(stderr, "Out of memory.\n");
         graceful_close();
     }
-    bl = fopen(blacklist_file, "r");
-    if(bl == NULL){
-        fprintf(stderr, "Error reading blacklist.\n");
-        graceful_close();
+    file_open:
+    wl = fopen(whitelist_file, "r");
+    if(wl == NULL){
+        printf("%d\n",errno);
+        if(errno == ENOENT){
+            fclose(fopen(whitelist_file,"w"));
+            goto file_open;
+        }else{        
+            fprintf(stderr, "Error reading whitelist.\n");
+            graceful_close();
+        }
+
     }
     int i;
     for(i = 0; 1; ++i){
         int j;
-        if(i >= blacklist_lines_allocated){
+        if(i >= whitelist_lines_allocated){
             int new_size;
-            new_size = blacklist_lines_allocated * 2;
-            blacklist = (char **) realloc(blacklist, sizeof(char*) * new_size);
-            if(blacklist == NULL){
+            new_size = whitelist_lines_allocated * 2;
+            whitelist = (char **) realloc(whitelist, sizeof(char*) * new_size);
+            if(whitelist == NULL){
                 fprintf(stderr, "Out of memory.\n");
                 graceful_close();
             }
-            blacklist_lines_allocated = new_size;
+            whitelist_lines_allocated = new_size;
         }
-        blacklist[i] = malloc(max_line_len);
-        if(blacklist[i] == NULL){
+        whitelist[i] = malloc(max_line_len);
+        if(whitelist[i] == NULL){
             fprintf(stderr, "Out of memory.\n");
             graceful_close();
         }
-        if(fgets(blacklist[i], max_line_len - 1, bl) == NULL)
+        if(fgets(whitelist[i], max_line_len - 1, wl) == NULL)
             break;
-        for(j = strlen(blacklist[i]) - 1; j >= 0 && (blacklist[i][j] == '\n' || blacklist[i][j] == '\r'); --j)
-            blacklist[i][j] = '\0';
+        for(j = strlen(whitelist[i]) - 1; j >= 0 && (whitelist[i][j] == '\n' || whitelist[i][j] == '\r'); --j)
+            whitelist[i][j] = '\0';
         
     }
-    int j;
-    for(j = 0; j < i; j++)
-        printf("%s\n", blacklist[j]);
-    fclose(bl);
-    return blacklist;
+    whitelist_size = i+1;
+    fclose(wl);
+    return whitelist;
 }
 
 void signal_handler(int sig){
@@ -164,7 +175,7 @@ static void daemon_skel(){
     signal(SIGUSR1, signal_handler);
     signal(SIGCHLD, signal_handler);
 
-    umask(0664);
+    umask(0666);
 
     int x;
     for (x = sysconf(_SC_OPEN_MAX); x>=0; x--){
@@ -172,8 +183,12 @@ static void daemon_skel(){
     }
 }
 
-void print_loop(char *logfile){
+void print_loop(char *logfile, char* whitelist_file){
     HostList h;
+    char **whitelist = NULL;
+    whitelist = read_whitelist(whitelist_file);
+    int skip;
+
 
     while(1){
         h = read_arp();
@@ -185,33 +200,45 @@ void print_loop(char *logfile){
         }
         
         for(int i = 0; i < h.len; i++){
-            fprintf(output, "IP: %s, MAC: %s, Interface: %s\n", h.hosts[i].ip, h.hosts[i].mac,h.hosts[i].iface);
+            skip = 0;
+            for(int j = 0; j < whitelist_size; j++){
+                //se o mac estiver na whitelist, pula o print
+                if(!strcmp(h.hosts[i].mac,whitelist[j])){
+                    skip = 1;
+                    break;
+                } 
+            }
+            if(!skip)
+                fprintf(output, "IP: %s, MAC: %s, Interface: %s\n", h.hosts[i].ip, h.hosts[i].mac,h.hosts[i].iface);
+
         }
 
         fprintf(output,"\n");
         if(logfile) fclose(output);
 
-        sleep(5);
+        sleep(arp_interval);
     }
 }
 
 int main(int argc, char** argv){
     char* logfile = "/tmp/monitor.log";
-    char* blacklist_file = "/tmp/blacklist";
-    char **blacklist = NULL;
+    char* whitelist_file = "/tmp/whitelist";
     int option_index;
     int opt;
     int daemonized = 0;
     int quiet = 0;
     while(1){
         option_index = 0;
-        opt = getopt_long(argc, argv, "l:dq:b:h", long_options, &option_index);
+        opt = getopt_long(argc, argv, "l:dq:w:hi:", long_options, &option_index);
         if(opt == -1) {
             break;
         }
         switch(opt){
-            case 'b':
-                blacklist_file = optarg;
+            case 'i':
+                arp_interval = atoi(optarg);
+                break;
+            case 'w':
+                whitelist_file = optarg;
                 break;                                                                                                                                                              
             case 'd':
                 daemonized = 1;
@@ -223,25 +250,23 @@ int main(int argc, char** argv){
                 quiet = 1;
                 break;
             case 'h':
+            case '?':
                 showHelp();
                 break;
             default:
                 break;
         }                              
     }
-    blacklist = read_blacklist(blacklist_file);
-    puts("TESTE");
-    // for(int j = 0; j < 3; ++j)
-    //     printf("%s\n", blacklist[j] );
+
     if(daemonized){
         daemon_skel();
         fclose(fopen(logfile,"w"));
-        print_loop(logfile);
+        print_loop(logfile,whitelist_file);
     }
-    else{
-        print_loop(NULL);                     
-    }
-  
+    
+    print_loop(NULL,whitelist_file);                     
+
+    return -1;
 }
 
 
