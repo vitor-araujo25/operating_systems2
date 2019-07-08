@@ -39,7 +39,6 @@ static struct option long_options[] = {
     {"interval",            required_argument   , NULL, 'i'},
     {"daemon",              no_argument         , NULL, 'd'},
     {"logfile",             required_argument   , NULL, 'l'},
-    {"quiet",               no_argument         , NULL, 'q'},
     {"help",                no_argument         , NULL, 'h'},
     {NULL, 0, NULL, 0}
 };
@@ -140,6 +139,7 @@ char** read_whitelist(char *whitelist_file){
 void signal_handler(int sig){
     switch(sig){
         case SIGTERM:
+        case SIGINT:
             graceful_close();
             break;
         default:
@@ -204,11 +204,13 @@ void print_loop(char *logfile, char* whitelist_file){
         for(int i = 0; i < h.len; i++){
             skip = 0;
             for(int j = 0; j < whitelist_size; j++){
+
                 //se o mac estiver na whitelist, pula o print
                 if(!strcmp(h.hosts[i].mac,whitelist[j])){
                     skip = 1;
                     break;
-                } 
+                }
+
             }
             if(!skip)
                 fprintf(output, "IP: %s, MAC: %s, Interface: %s\n", h.hosts[i].ip, h.hosts[i].mac,h.hosts[i].iface);
@@ -228,10 +230,9 @@ int main(int argc, char** argv){
     int option_index;
     int opt;
     int daemonized = 0;
-    int quiet = 0;
     while(1){
         option_index = 0;
-        opt = getopt_long(argc, argv, "l:dq:w:hi:", long_options, &option_index);
+        opt = getopt_long(argc, argv, "l:dw:hi:", long_options, &option_index);
         if(opt == -1) {
             break;
         }
@@ -247,9 +248,6 @@ int main(int argc, char** argv){
                 break;
             case 'l':
                 logfile = optarg;
-                break;
-            case 'q':
-                quiet = 1;
                 break;
             case 'h':
             case '?':
